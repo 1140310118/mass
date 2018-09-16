@@ -7,8 +7,7 @@ class Kmeans:
 	举例：
 	>>> X = np.array([[0,1],[0,2],[3,4],[4,5]])
 	>>> Kmeans = Kmeans()
-	>>> Kmeans.main(X,k=2,t=10)
-	[1, 1, 0, 0]
+	>>> label,centers = Kmeans.main(X,k=2,t=10)
 	"""
 	def __init__(self):
 		pass

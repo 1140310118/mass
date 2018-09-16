@@ -4,8 +4,8 @@
 ## 聚类算法
 
 - Kmeans
-- GMM (待续)
+- GMM
 
-## 字符串
+## 字符串算法
 
-- AC自动机
+- AC自动机 ——多模式匹配，简介 [AC算法及python实现](http://superzhang.site/blog/AC-algorithm-and-its-python-implementation/)
