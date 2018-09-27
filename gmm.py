@@ -285,7 +285,7 @@ class CLF:
         n = X.shape[0]
         Prob = np.zeros((n,self.k))
         for i in range(self.k):
-            Prob[:,i] = np.log(self.gmms[i].cal_prob(X))+np.log(self.cluster_prob.reshape((1,self.k))) # (n,k) + (1,k)
+            Prob[:,i] = np.log(self.gmms[i].pdfs(X))+np.log(self.cluster_prob.reshape((1,self.k))) # (n,k) + (1,k)
         
         label = np.argmax(Prob,axis=1)
         return label
