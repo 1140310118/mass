@@ -16,58 +16,54 @@ except:
 
 class Guass_distribution:
     """
-    属性值：
-    d     高斯分布的维度
-    mu    均值 ndarray 形状为 (d,1)
-    Sigma 协方差矩阵 ndarray 形状为 (d,d)
-    weight此高斯分布的权重
+    Attribute:
+     dim    高斯分布的维度
+     mu     均值 ndarray 形状为 (d,1)
+     Sigma  协方差矩阵 ndarray 形状为 (d,d)
+     weight 此高斯分布的权重
     """
     def __init__(self,mu=[[0,0]],Sigma=[[1,0],[0,1]],dim=2):
-        self.mu = np.array(mu)
-        self.Sigma = np.array(Sigma)
         self.dim = dim
         self.weight = 1
+        self.update(mu=mu,Sigma=Sigma)
 
     def init(self,data):
         """
         高斯分布有2种初始化方法：
-         1. random  生成随机的参数，不推荐 
-         2. by_data 根据分配的数据，对参数进行估计 
+         1. random  生成随机的参数
+         2. by_data 根据分配的数据，对参数进行估计
+        这里仅实现第二种方法
         """
-        self.Sigma = np.cov(data,rowvar=0)
-        self.mu = np.mean(data,axis=0).reshape(-1,1)
-
-        self.inv_Sigma = la.inv(self.Sigma)
-        det = np.fabs(la.det(self.Sigma))
-        self.factor = (2*np.pi)**(self.dim/2)*det**0.5
+        Sigma = np.cov(data,rowvar=0)
+        mu = np.mean(data,axis=0).reshape(-1,1)
+        self.update(mu=mu,Sigma=Sigma)
 
     def update(self,mu,Sigma):
-        self.mu = mu
-        self.Sigma = Sigma
+        self.mu = np.array(mu)
+        self.Sigma = np.array(Sigma)
         self.inv_Sigma = la.inv(self.Sigma)
         det = np.fabs(la.det(self.Sigma))
         self.factor = (2*np.pi)**(self.dim/2)*det**0.5
         
-    def cal_prob(self,x):
+    def pdf(self,x):
         """ 
-        预先计算 公共部分，以减少计算量。
-        x 的形状 (d,1) 
+        概率密度函数，其中参数x的形状为(d,1)
         """
         dx = x - self.mu
         # exp{(1,d)*(d,d)*(d,1)}
         numerator = np.exp(-0.5*dx.T @ self.inv_Sigma @ dx)[0,0]
         return numerator/self.factor
 
-    def cal_probs(self,X):
+    def pdfs(self,X):
         """ 
-        参数: X    形状为(n,d)
-        返回: Prob 形状为(n,1)
+        批量计算概率密度函数，其中参数X的形状为(n,d)，函数的返回值
+        Prob 形状为(n,1)。
         """
         n = X.shape[0]
         Prob = np.zeros((n,1))
         for i in range(n):
             x = X[i].T.reshape(-1,1)
-            prob = self.cal_prob(x)
+            prob = self.pdf(x)
             Prob[i] = prob
         return Prob
 
@@ -83,21 +79,22 @@ class Guass_distribution:
 
 class GMM:
     """
-    举例：
+    Example:
     >>> X = np.array([[0,1],[0,2],[3,4],[4,5]])
     >>> gmm = GMM(m=2,dim=2)
     >>> gmm.fit(X,t=100)
     >>> label = gmm.which_cluster(X)
-    属性值：
+    
+    Attribute:
      dim   数据的维度
      m     高斯分布的个数
      Guass m个高斯分布
     """
     def __init__(self,m,dim):
         """
-        参数：
-        m   类的数目
-        dim 数据的维度
+        Args:
+         m   类的数目
+         dim 数据的维度
         """
         self.m = m
         self.dim =dim
@@ -105,8 +102,8 @@ class GMM:
     def _init_parameters(self,X,method='kmeans'):
         """
         初始化高斯分布的参数。
-        如果 method == 'kmeans'，那么使用kmeans进行初始化；
-        如果 method == 'random'，那么进行随机初始化。
+         如果 method == 'kmeans'，那么使用kmeans进行初始化；
+         如果 method == 'random'，那么进行随机初始化。
         """
         n = X.shape[0]
         self.Guass = [Guass_distribution(dim=self.dim) for i in range(self.m)]
@@ -139,12 +136,15 @@ class GMM:
             guass.weight = len(clusters[i])/n
         
     def _cal_prob(self,X):
-        """计算每个高斯分布中，X的概率"""
+        """
+        计算每个高斯分布中，X的概率密度。参数X的形状为(n,dim)，
+        返回值Prob的形状为(n,m)。
+        """
         n = X.shape[0] # X (n,d)
         Prob = np.zeros((n,self.m)) # Prob (n,m)
         for i in range(self.m):
             guass = self.Guass[i]
-            prob = guass.cal_probs(X)
+            prob = guass.pdfs(X)
             Prob[:,i] = prob.T * guass.weight
 
         denominator = np.sum(Prob,axis=1,keepdims=1)
@@ -152,7 +152,9 @@ class GMM:
         return Prob
 
     def _estimate_parameters(self,Prob,X):
-        """估计参数"""
+        """
+        参数X的形状为(n,dim)，返回值Prob的形状为(n,m)。
+        """
         n = Prob.shape[0]
         Prob_sum = np.sum(Prob,axis=0) # 为了减少计算量
 
@@ -175,7 +177,9 @@ class GMM:
         return [self.Guass[i].to_tuple() for i in range(self.m)]
 
     def _is_same(self,p1,p2):
-        """判断p2和p2是否一模一样"""
+        """
+        判断参数集p1、p2是否发生变化。
+        """
         for t1,t2 in zip(p1,p2):
             for e1,e2 in zip(t1,t2):
                 if (e1 != e2).any():
@@ -184,8 +188,8 @@ class GMM:
 
     def fit(self,X,max_iter):
         """
-        通过X对模型进行训练。
-        参数：
+        使用 X 对模型进行训练。
+        args：
          X 训练数据，形状为(n,d)
          max_iter 最大迭代次数
         """
@@ -211,24 +215,30 @@ class GMM:
         return Prob
 
     def which_cluster(self,X):
-        """判断样本属于m个高斯分布中的哪一个"""
+        """
+        判断样本属于m个高斯分布中的哪一个。
+        """
         Prob = self._cal_prob(X)
         labels = np.argmax(Prob,axis=1)
         return labels
 
-    def cal_prob(self,X):
-        """计算在此模型下，X存在的概率"""
+    def pdfs(self,X):
+        """
+        批量计算概率密度函数
+        """
         n = X.shape[0]
         Prob = np.zeros((n,self.m)) # (n,m)
         for i in range(self.m):
             guass = self.Guass[i]
-            prob = guass.cal_probs(X)
+            prob = guass.pdfs(X)
             Prob[:,i] = prob.T * guass.weight
 
         return np.sum(Prob,axis=1)
 
     def show_parameter(self,precision=2):
-        """展示模型参数"""
+        """
+        展示模型参数
+        """
         np.set_printoptions(precision = precision)
         for guass in self.Guass:
             print (guass)
@@ -237,15 +247,15 @@ class GMM:
 class CLF:
     """
     使用GMM对每个类中的数据分布进行建模，通过贝叶斯判别准则进行分类。
-    举例：
+    Example:
     >>> clf = CLF(10,3,dim=17)
     >>> clf.fit(minst_train_X,minst_train_Y)
     >>> Y_predict = clf.predict(minst_test_X)
     """
     def __init__(self,k,m,dim):
         """
-        参数:
-         k   数据中类的数目
+        Args:
+         k   类的数目
          m   每个GMM中高斯分布的数目
          dim 数据的维度
         """
@@ -255,7 +265,7 @@ class CLF:
 
     def fit(self,X,Y):
         """
-        参数:
+        Args:
          X 形状为(n,d)
          Y 形状为(n,)
         """
@@ -267,9 +277,9 @@ class CLF:
 
     def predict(self,X):
         """
-        参数:
+        Args:
          X 形状为(n,d)
-        返回:
+        Return:
          lable 形状为(n,)
         """
         n = X.shape[0]
@@ -291,4 +301,4 @@ if __name__ == '__main__':
     gmm = GMM(m=2,dim=2)
     gmm.fit(X,max_iter=100)
     gmm.show_parameter()
-    print (gmm.cal_prob(X))
+    print (gmm.pdfs(X))
