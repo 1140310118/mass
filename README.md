@@ -8,7 +8,7 @@
 
 ## 分类算法
 
-- 感知器Perceptron
+- 感知器Perceptron，简介[感知器算法及python实现](http://superzhang.site/blog/perceptron-and-its-python-implementation/#%E8%AF%84%E8%AE%BA)
 
 ## 字符串算法
 
