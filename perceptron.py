@@ -342,6 +342,7 @@ def load_csv(filename,type_=float):
 			D.append(d)
 	return np.array(D)
 
+
 def transform(arr):
     processor = MinMaxScaler()
     processor.fit(arr)
@@ -403,7 +404,7 @@ def MultiClassification_Perceptron_test():
     clf = MultiClassification_Perceptron(k=10)
     for para in (perceptron_para,naive_mse_para,
                 tanh_para,sigmoid_para,relu_para):
-        clf.fit(label_train,label_train,max_iter=200,
+        clf.fit(feature_train,label_train,max_iter=200,
                 batch_size=1000,**para)
         print (clf.score(feature_train,label_train))
         print (clf.score(feature_test,label_test))
