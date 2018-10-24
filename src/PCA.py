@@ -9,6 +9,8 @@ import numpy as np
 class PrincipalComponentAnalysis:
     def __init__(self,k=1):
         self.k = k
+        self.mu = None
+        self.E = None
 
     def fit(self, X):
         sigma = np.cov(X, rowvar=False)
@@ -16,7 +18,7 @@ class PrincipalComponentAnalysis:
         self.E = self._topk_eigenvectors(sigma)
 
     def transform(self, X):
-        return  (X-self.mu) @ self.E
+        return (X-self.mu) @ self.E
 
     def fit_transform(self, X):
         self.fit(X)
